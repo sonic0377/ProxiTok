@@ -1,0 +1,17 @@
+<div class="dropdown is-hoverable">
+	<div class="dropdown-trigger">
+		<button class="button is-primary" aria-haspopup="true" aria-controls="dropdown-menu">
+			{include '../../icon.latte', icon: 'share', text: 'Share'}
+		</button>
+	</div>
+	<div class="dropdown-menu" role="menu">
+		<div class="dropdown-content">
+			<a href="{url_video_internal($uniqueId, $id)}" class="dropdown-item has-text-success">
+				{include '../../icon.latte', icon: 'lock', text: 'Instance link'}
+			</a>
+			<a href="{url_video_external($uniqueId, $id)}" class="dropdown-item has-text-warning">
+				{include '../../icon.latte', icon: 'lock-unlock', text: 'Original Link'}
+			</a>
+		</div>
+	</div>
+</div>

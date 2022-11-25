@@ -1,0 +1,18 @@
+{layout '../layouts/hero.latte'}
+
+{block content}
+	<p class="title">There was an error processing your request!</p>
+	<div class="content">
+		<p>HTTP Code: {$http_code}</p>
+		{if isset($tiktok_code)}
+		<p>
+			<span>API error code {$tiktok_code} ({$msg})</span>
+			{if $tiktok_code === 10000 || $tiktok_code === -1}
+				<a href="{path('/verify')}">What does this mean?</a>
+			{/if}
+		</p>
+		{else}
+		<p>{$msg}</p>
+		{/if}
+	</div>
+{/block}

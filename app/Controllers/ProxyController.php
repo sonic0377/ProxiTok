@@ -1,6 +1,9 @@
 <?php
 namespace App\Controllers;
 
+use App\Helpers\Cookies;
+use TikScraper\Helpers\Converter;
+
 class ProxyController {
     const VALID_TIKTOK_DOMAINS = [
         "tiktokcdn.com", "tiktokcdn-us.com", "tiktok.com"
@@ -30,11 +33,8 @@ class ProxyController {
 
     }
 
-    static private function getFileName(): string {
-        $filename = 'tiktok-video';
-        if (isset($_GET['user'])) {
-            $filename .= '-' . $_GET['user'] . '-' . $_GET['id'];
-        }
+    static private function getFilename(string $id, string $user): string {
+        $filename = 'tiktok-video-' . $id . '-' . $user;
         return $filename;
     }
 
@@ -46,18 +46,18 @@ class ProxyController {
     }
 
     static public function download() {
-        $downloader = new \TikScraper\Download();
+        self::checkUrl();
+        $method = Cookies::downloader();
+        $downloader = new \TikScraper\Download($method);
+
+        // Params
+        $id = $_GET['id'] ?? '';
         $watermark = isset($_GET['watermark']);
-        if ($watermark) {
-            self::checkUrl();
-            $filename = self::getFileName();
-            $downloader->url($_GET['url'], $filename, true);
-        } else {
-            if (!isset($_GET['id'])) {
-                die('You need to send an ID!');
-            }
-            $filename = self::getFileName();
-            $downloader->url($_GET['id'], $filename, false);
-        }
+        $url = $_GET['url'];
+        $user = $_GET['user'] ?? '';
+        // Filename
+        $filename = self::getFilename($id, $user);
+        // Running
+        $downloader->url($url, $filename, $watermark);
     }
 }

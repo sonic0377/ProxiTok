@@ -1,0 +1,13 @@
+<div class="dropdown is-hoverable">
+	<div class="dropdown-trigger">
+		<button class="button is-success" aria-haspopup="true" aria-controls="dropdown-menu">
+			{include '../../icon.latte', icon: 'software-download', text: 'Download'}
+		</button>
+	</div>
+	<div class="dropdown-menu" role="menu">
+		<div class="dropdown-content">
+			<a target="_blank" href="{url_download($playAddr, $uniqueId, $id, true)}" class="dropdown-item">Watermark</a>
+			<a target="_blank" href="{url_download(url_video_external($uniqueId, $id), $uniqueId, $id, false)}" class="dropdown-item">No watermark</a>
+		</div>
+	</div>
+</div>

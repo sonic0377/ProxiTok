@@ -3,12 +3,14 @@ namespace App\Helpers;
 
 use App\Cache\JSONCache;
 use App\Cache\RedisCache;
+use App\Constants\CacheMethods;
+use App\Models\BaseTemplate;
 
 class Wrappers {
     /**
      * Setup of Latte template engine
      */
-    static public function latte(): \Latte\Engine {
+    static public function latte(string $template, BaseTemplate $base) {
         $latte = new \Latte\Engine;
         $cache_path = Misc::env('LATTE_CACHE', __DIR__ . '/../../cache/latte');
         $latte->setTempDirectory($cache_path);
@@ -18,13 +20,40 @@ class Wrappers {
         $latte->addFunction('path', function (string $endpoint = ''): string {
             return Misc::url($endpoint);
         });
-        // Version being used
-        $latte->addFunction('version', function (): string {
-            return \Composer\InstalledVersions::getVersion('pablouser1/proxitok');
+
+        // Static assets
+        $latte->addFunction('static', function (string $type, string $file, bool $isVendor = false): string {
+            $endpoint = '';
+            switch ($type) {
+                case 'js':
+                    $endpoint .= '/scripts';
+                    break;
+                case 'css':
+                    $endpoint .= '/styles';
+                    break;
+                default:
+                    throw new \Exception('Invalid static asset type');
+            }
+
+            if ($isVendor) $endpoint .= '/vendor';
+
+            $endpoint .= '/' . $file;
+
+            return Misc::url($endpoint);
         });
+
         $latte->addFunction('theme', function(): string {
             return Cookies::theme();
         });
+
+        // Version being used
+        $latte->addFunction('version_frontend', function (): string {
+            return \Composer\InstalledVersions::getVersion('pablouser1/proxitok');
+        });
+        $latte->addFunction('version_scraper', function (): string {
+            return \Composer\InstalledVersions::getVersion('pablouser1/tikscraper');
+        });
+
         // https://stackoverflow.com/a/36365553
         $latte->addFunction('number', function (float $x) {
             if($x > 1000) {
@@ -39,29 +68,74 @@ class Wrappers {
             }
             return $x;
         });
-        return $latte;
+
+        // UrlBuilder
+        $latte->addFunction('url_stream', function (string $url): string {
+            return UrlBuilder::stream($url);
+        });
+        $latte->addFunction('url_user', function (string $username): string {
+            return UrlBuilder::user($username);
+        });
+        $latte->addFunction('url_video_internal', function (string $username, string $id): string {
+            return UrlBuilder::video_internal($username, $id);
+        });
+        $latte->addFunction('url_video_external', function (string $username, string $id): string {
+            return UrlBuilder::video_external($username, $id);
+        });
+        $latte->addFunction('url_download', function (string $url, string $username, string $id, bool $watermark): string {
+            return UrlBuilder::download($url, $username, $id, $watermark);
+        });
+
+        $latte->render(Misc::getView($template), $base);
     }
 
     /**
      * Setup of TikTok Api wrapper
      */
     static public function api(): \TikScraper\Api {
+        $method = Misc::env('API_SIGNER', '');
+        $url = Misc::env('API_SIGNER_URL', '');
+        if (!$method) {
+            // Legacy support
+            $browser_url = Misc::env('API_BROWSER_URL', '');
+            if ($url) {
+                $method = 'remote';
+            } elseif ($browser_url) {
+                $url = $browser_url;
+                $method = 'browser';
+            }
+        }
+
         $options = [
-            'use_test_endpoints' => Misc::env('API_TEST_ENDPOINTS', false),
+            'use_test_endpoints' => Misc::env('API_TEST_ENDPOINTS', false) || isset($_COOKIE['api-test_endpoints']) && $_COOKIE['api-test_endpoints'] === 'yes',
             'signer' => [
-                'remote_url' => Misc::env('API_SIGNER_URL', ''),
-                'browser_url' => Misc::env('API_BROWSER_URL', ''),
+                'method' => $method,
+                'url' => $url,
                 'close_when_done' => false
             ]
         ];
+
+        // -- PROXY CONFIG -- //
+        $proxy_host = Misc::env('PROXY_HOST', '');
+        $proxy_port = Misc::env('PROXY_PORT', '');
+
+        if ($proxy_host && $proxy_port) {
+            $options['proxy'] = [
+                'host' => $proxy_host,
+                'port' => $proxy_port,
+                'username' => Misc::env('PROXY_USERNAME', null),
+                'password' => Misc::env('PROXY_PASSWORD', null)
+            ];
+        }
+
         // Cache config
-        $cacheEngine = false;
+        $cacheEngine = null;
         if (isset($_ENV['API_CACHE'])) {
             switch ($_ENV['API_CACHE']) {
-                case 'json':
+                case CacheMethods::JSON:
                     $cacheEngine = new JSONCache();
                     break;
-                case 'redis':
+                case CacheMethods::REDIS:
                     if (!(isset($_ENV['REDIS_URL']) || isset($_ENV['REDIS_HOST'], $_ENV['REDIS_PORT']))) {
                         throw new \Exception('You need to set REDIS_URL or REDIS_HOST and REDIS_PORT to use Redis Cache!');
                     }

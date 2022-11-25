@@ -17,10 +17,9 @@ class TrendingController {
 
         $feed = $trending->getFeed();
         if ($feed && $feed->meta->success) {
-            $latte = Wrappers::latte();
-            $latte->render(Misc::getView('trending'), new FeedTemplate('Trending', $feed));
+            Wrappers::latte('trending', new FeedTemplate('Trending', $feed));
         } else {
-            ErrorHandler::show($trending->error());
+            ErrorHandler::showMeta($trending->error());
         }
     }
 
@@ -31,8 +30,8 @@ class TrendingController {
 
         $feed = $trending->getFeed();
         if ($feed && $feed->meta->success) {
-            $latte = Wrappers::latte();
-            $latte->render(Misc::getView('rss'), new RSSTemplate('Trending', 'Trending on TikTok', '/trending', $feed->items));
+            Misc::rss('Trending');
+            Wrappers::latte('rss', new RSSTemplate('Trending', 'Trending on TikTok', Misc::url('/trending'), $feed->items));
         }
     }
 }
