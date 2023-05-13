@@ -2,12 +2,13 @@
 namespace App\Controllers;
 use App\Helpers\ErrorHandler;
 use App\Helpers\Misc;
+use App\Helpers\UrlBuilder;
 
 /**
  * Used to be compatible with HTML forms
  */
 class RedirectController {
-    static public function redirect() {
+    public static function search() {
         $endpoint = '/';
         if (isset($_GET['type'], $_GET['term'])) {
             $term = trim($_GET['term']);
@@ -48,11 +49,29 @@ class RedirectController {
         header("Location: {$url}");
     }
 
+    public static function download() {
+        if (!(isset($_GET['videoId'], $_GET['authorUsername'], $_GET['playAddr']))) {
+            ErrorHandler::showText(400, 'Request incomplete');
+            return;
+        }
+
+        $watermark = isset($_GET['watermark']) && $_GET['watermark'] === 'yes' ? true : false;
+
+        $url = '';
+        if ($watermark) {
+            $url = UrlBuilder::download($_GET['playAddr'], $_GET['authorUsername'], $_GET['videoId'], true);
+        } else {
+            $url = UrlBuilder::download(UrlBuilder::video_external($_GET['authorUsername'], $_GET['videoId']), $_GET['authorUsername'], $_GET['videoId'], false);
+        }
+
+        header("Location: {$url}");
+    }
+
     /**
      * to_endpoint maps a TikTok URL into a ProxiTok-compatible endpoint URL.
      */
     static private function to_endpoint(string $url): string {
-        if (preg_match('%^(?:https?://|www\.)?(?:vm\.|vt\.)?tiktok\.com/(?:t/)?([A-Za-z0-9]+)%', $url, $m)) {
+        if (preg_match('%^(?:https?://)?(?:www\.)?(?:vm\.|vt\.)?tiktok\.com/(?:t/)?([A-Za-z0-9]+)%', $url, $m)) {
             // Short video URL
             return '/@placeholder/video/' . $m[1];
         } elseif (preg_match('%^https://www\.tiktok\.com/(.+)%', $url, $m)) {

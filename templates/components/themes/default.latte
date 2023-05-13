@@ -1,9 +1,9 @@
 <div class="container">
-	{foreach $data->feed->items as $item}
+	{foreach $feed->items as $item}
 	<article class="media">
   	<figure class="media-left">
     	<p class="image is-64x64">
-      	<img src="{url_stream($item->author->avatarThumb)}" />
+      	<img class="is-rounded" src="{url_stream($item->author->avatarThumb)}" />
     	</p>
   	</figure>
   	<div class="media-content">
@@ -17,21 +17,34 @@
 			{if !empty($item->challenges)}
 			<p>{include './common/tags.latte', challenges: $item->challenges}</p>
 			{/if}
-			<p n:ifcontent>{$item->desc}</p>
+			<p n:ifcontent>{render_desc($item->desc, $item->textExtra ?? [])|noescape}</p>
+			<p>Song: {$item->music->title}</p>
+			<audio controls preload="none" src="{url_stream($item->music->playUrl)}"></audio>
 			{include './common/stats.latte', playCount: $item->stats->playCount, diggCount: $item->stats->diggCount, commentCount: $item->stats->commentCount, shareCount: $item->stats->shareCount}
 			<div class="has-text-centered">
-				<video width="{$item->video->width}" height="{$item->video->height}" controls preload="none" poster="{url_stream($item->video->originCover)}">
-					<source src="{url_stream($item->video->playAddr)}" type="video/mp4" />
-				</video>
+				{include './common/content.latte', item: $item, isAutoplay: false, isBig: false}
 			</div>
+			{if isset($item->video->playAddr) && $item->video->playAddr !== ""}
+			<!-- Download links, not shown if item is a gallery -->
+			<p class="has-text-centered"><b>Download video</b></p>
+			{include './common/download.latte', playAddr: $item->video->playAddr, id: $item->id, uniqueId: $item->author->uniqueId}
+			{/if}
+			<p class="has-text-centered"><b>Share link</b></p>
+			{include './common/share.latte', uniqueId: $item->author->uniqueId, id: $item->id}
 			<div class="has-text-centered">
-				{include './common/share.latte', uniqueId: $item->author->uniqueId, id: $item->id}
-				{include './common/download.latte', playAddr: $item->video->playAddr, id: $item->id, uniqueId: $item->author->uniqueId}
+				{embed '../details.latte', title: "Details"}
+				{block content}
+				<p>Is Ad: {bool_to_str($item->isAd)}
+				<p>Can duet: {bool_to_str($item->duetEnabled)}</p>
+				<p>Can stitch (add this video to other ones): {bool_to_str($item->stitchEnabled)}</p>
+				<p>Can be shared: {bool_to_str($item->shareEnabled)}
+				{/block}
+				{/embed}
 			</div>
   	</div>
 	</article>
 	{/foreach}
-	{if empty($data->feed->items)}
+	{if empty($feed->items)}
 		<p class="title">No items sent by TikTok!</p>
 	{/if}
 </div>

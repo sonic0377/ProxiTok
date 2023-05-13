@@ -9,20 +9,21 @@ use App\Models\FullTemplate;
 use App\Models\RSSTemplate;
 
 class TagController {
-    static public function get(string $name) {
+    public static function get(string $name) {
         $cursor = Misc::getCursor();
         $api = Wrappers::api();
         $hashtag = $api->hashtag($name);
         $hashtag->feed($cursor);
         if ($hashtag->ok()) {
-            $data = $hashtag->getFull();
-            Wrappers::latte('tag', new FullTemplate($data->info->detail->title, $data));
+            $info = $hashtag->getInfo();
+            $feed = $hashtag->getFeed();
+            Wrappers::latte('tag', new FullTemplate($info->detail->title, $info, $feed));
         } else {
             ErrorHandler::showMeta($hashtag->error());
         }
     }
 
-    static public function rss(string $name) {
+    public static function rss(string $name) {
         $api = Wrappers::api();
         $hashtag = $api->hashtag($name);
         $hashtag->feed();
